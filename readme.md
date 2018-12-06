@@ -12,8 +12,6 @@ Dead-simple. Safe for concurrent use.
 
 Cache expensive function calls in memory, with a configurable timeout and purge interval:
 
-Dead-simple:
-
 ```go
 import (
 	"time"
