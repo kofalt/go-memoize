@@ -1,0 +1,23 @@
+package: github.com/kofalt/memoize
+
+owners:
+- name:  Nathaniel Kofalt
+  email: nathaniel@kofalt.com
+
+import:
+
+- package: github.com/patrickmn/go-cache
+  version: master
+
+- package: golang.org/x/sync
+  version: master
+  subpackages:
+  - singleflight
+
+testImport:
+
+- package: github.com/smartystreets/gunit
+  version: master
+
+- package: github.com/smartystreets/assertions
+  version: master
