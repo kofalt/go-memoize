@@ -16,7 +16,7 @@ Cache expensive function calls in memory, with a configurable timeout and purge 
 import (
 	"time"
 
-	"github.com/kofalt/memoize"
+	"github.com/kofalt/go-memoize"
 )
 
 // Any expensive call that you wish to cache
