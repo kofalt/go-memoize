@@ -45,22 +45,3 @@ In the example above, `result` is:
 All the hard stuff is punted to patrickmn's [go-cache](https://github.com/patrickmn/go-cache) and the Go team's [sync/singleflight](https://godoc.org/golang.org/x/sync/singleflight), I just lashed them together.
 
 Also note that `cache.Storage` is exported, so you can use the underlying cache features - such as [Flush](https://godoc.org/github.com/patrickmn/go-cache#Cache.Flush) or [SaveFile](https://godoc.org/github.com/patrickmn/go-cache#Cache.SaveFile).
-
-## Building
-
-```bash
-git clone https://github.com/kofalt/go-memoize workspace/src/github.com/kofalt/memoize
-ln -s workspace/src/github.com/kofalt/memoize memoize
-
-./memoize/make.sh
-```
-
-This flow needs updating to the latest, hotest Go project / dependency magic. If it ain't broke...
-
-## Testing
-
-Some very simple tests exist; far more extensive tests can be found in the two libraries.
-
-```
-./memoize/make.sh test
-```

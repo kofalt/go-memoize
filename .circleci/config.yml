@@ -1,66 +1,27 @@
 version: 2
 
 jobs:
-    build:
-        # The local circleci binary does not support relative directories.
-        # They plan to remove this limitation in the future.
-        # Ref: https://circleci.com/docs/2.0/local-jobs/#relative-path-for-working_directory
-        working_directory: "/workspace/src/github.com/kofalt/memoize"
+  build:
+    working_directory: /app
 
-        docker:
-            - image: buildpack-deps:cosmic-scm
-              environment:
-                # Enable the installation and use of junit XML output
-                MakeGenerateJunit: "1"
-                # These make local builds faster by virtue of the source directory mount.
-                # Would be better to get caching in the local build environment and remove this section.
-                # Ref: https://discuss.circleci.com/t/caching-in-the-local-2-0-environment/13542
-                GIMME_ENV_PREFIX: "./.gimme/envs"
-                GIMME_VERSION_PREFIX: "./.gimme/versions"
+    docker:
+      - image: docker.io/golang:1.12
 
-        steps:
-            - checkout
+    steps:
+      - checkout
 
-            - restore_cache:
-                key: memoize-1-{{ checksum "make.sh"}}-{{ checksum "glide.lock" }}
+      - run:
+          name: Deps
+          command: go mod download
 
-            - run:
-                name: Install Dependencies
-                command: ./make.sh glide install
+      - run:
+          name: Compile
+          command: go build -v
 
-            - run:
-                name: Compile Standard Library
-                command: ./make.sh prepareCrossBuild
+      - run:
+          name: Check formatting
+          command: diff -u <(echo -n) <(gofmt -s -d .)
 
-            - save_cache:
-                key: memoize-1-{{ checksum "make.sh"}}-{{ checksum "glide.lock" }}
-                paths:
-                    - "./.gimme"
-                    - "./.glide"
-                    - "/workspace/bin"
-
-            - run:
-                name: Compile
-                command: ./make.sh
-
-            - run:
-                name: Check formatting
-                command: ./make.sh formatCheck
-
-            - run:
-                name: Test
-                command: ./make.sh test
-
-            - run:
-                name: Cleanup
-                command: cd /workspace/bin; rm -f glide go-junit-report
-                when: always
-
-            # CircleCI wants their 'store_test_results' path to be a folder
-            - run:
-                name: Test fiddling
-                command: test -f .report.xml && ( mkdir -p circle-tests; mv .report.xml circle-tests/ ) || true
-                when: always
-
-            - store_test_results:
-                path: circle-tests
+      - run:
+          name: Test
+          command: go test
