@@ -1,0 +1,32 @@
+name: Go
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+      id: go
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Get deps
+      run: go mod download
+
+    - name: Build
+      run: go build -v
+
+    - name: Test
+      run: go test -v -coverprofile /tmp/coverprofile.temp
