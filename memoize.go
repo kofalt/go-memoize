@@ -16,6 +16,11 @@ type Memoizer struct {
 	group singleflight.Group
 }
 
+type functionResult struct {
+	value interface{}
+	error error
+}
+
 // NewMemoizer creates a new Memoizer with the configured expiry and cleanup policies.
 // If desired, use cache.NoExpiration to cache values forever.
 func NewMemoizer(defaultExpiration, cleanupInterval time.Duration) *Memoizer {
@@ -30,18 +35,15 @@ func NewMemoizer(defaultExpiration, cleanupInterval time.Duration) *Memoizer {
 // The boolean return value indicates whether v was previously stored.
 func (m *Memoizer) Memoize(key string, fn func() (interface{}, error)) (interface{}, error, bool) {
 	// Check cache
-	value, found := m.Storage.Get(key)
+	result, found := m.Storage.Get(key)
 	if found {
-		return value, nil, true
+		return result.(functionResult).value, result.(functionResult).error, true
 	}
 
 	// Combine memoized function with a cache store
 	value, err, _ := m.group.Do(key, func() (interface{}, error) {
 		data, innerErr := fn()
-
-		if innerErr == nil {
-			m.Storage.Set(key, data, cache.DefaultExpiration)
-		}
+		m.Storage.Set(key, functionResult{value: data, error: innerErr}, cache.DefaultExpiration)
 
 		return data, innerErr
 	})

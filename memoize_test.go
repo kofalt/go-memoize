@@ -48,38 +48,25 @@ func (t *F) TestBasic() {
 	t.So(cached, ShouldBeFalse)
 }
 
-// TestFailure checks that failed function values are not cached
+// TestFailure checks that failed function values are cached
 func (t *F) TestFailure() {
 	calls := 0
-
-	// This function will fail IFF it has not been called before.
-	twoForTheMoney := func() (interface{}, error) {
-		calls++
-
-		if calls == 1 {
-			return calls, errors.New("Try again")
-		} else {
-			return calls, nil
-		}
+	functionReturningError := func() (interface{}, error) {
+		calls += 1
+		return calls, errors.New("Try again")
 	}
 
 	cache := NewMemoizer(90*time.Second, 10*time.Minute)
 
-	// First call should fail, and not be cached
-	result, err, cached := cache.Memoize("key1", twoForTheMoney)
-	t.So(err, ShouldNotBeNil)
+	// First call should fail, and be cached
+	result, err, cached := cache.Memoize("key1", functionReturningError)
+	t.So(err.Error(), ShouldEqual, "Try again")
 	t.So(result.(int), ShouldEqual, 1)
 	t.So(cached, ShouldBeFalse)
 
-	// Second call should succeed, and not be cached
-	result, err, cached = cache.Memoize("key1", twoForTheMoney)
-	t.So(err, ShouldBeNil)
-	t.So(result.(int), ShouldEqual, 2)
-	t.So(cached, ShouldBeFalse)
-
-	// Third call should succeed, and be cached
-	result, err, cached = cache.Memoize("key1", twoForTheMoney)
-	t.So(err, ShouldBeNil)
-	t.So(result.(int), ShouldEqual, 2)
+	// Read from cache
+	result, err, cached = cache.Memoize("key1", functionReturningError)
+	t.So(err.Error(), ShouldEqual, "Try again")
+	t.So(result.(int), ShouldEqual, 1)
 	t.So(cached, ShouldBeTrue)
 }
