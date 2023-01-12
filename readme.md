@@ -51,3 +51,33 @@ In the example above, `result` is:
 All the hard stuff is punted to patrickmn's [go-cache](https://github.com/patrickmn/go-cache) and the Go team's [x/sync/singleflight](https://github.com/golang/sync), I just lashed them together.
 
 Also note that `cache.Storage` is exported, so you can use the underlying cache features - such as [Flush](https://godoc.org/github.com/patrickmn/go-cache#Cache.Flush) or [SaveFile](https://godoc.org/github.com/patrickmn/go-cache#Cache.SaveFile).
+
+### Generics
+
+You can also use generics. The same example as above
+
+```golang
+import (
+	"time"
+
+	"github.com/kofalt/go-memoize"
+)
+
+// Any expensive call that you wish to cache
+expensive := func() (string, error) {
+	time.Sleep(3 * time.Second)
+	return "some data", nil
+}
+
+// Cache expensive calls in memory for 90 seconds, purging old entries every 10 minutes.
+cache := memoize.NewMemoizer(90*time.Second, 10*time.Minute)
+
+// This will call the expensive func, and return a string.
+result, err, cached := memoize.Call(cache, "key1", expensive)
+
+// This will be cached
+result, err, cached = memoize.Call(cache, "key1", expensive)
+
+// This uses a new cache key, so expensive is called again
+result, err, cached = memoize.Call(cache, "key2", expensive)
+```
