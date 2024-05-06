@@ -26,7 +26,7 @@ import (
 )
 
 // Any expensive call that you wish to cache
-expensive := func() (interface{}, error) {
+expensive := func() (any, error) {
 	time.Sleep(3 * time.Second)
 	return "some data", nil
 }
@@ -48,13 +48,13 @@ In the example above, `result` is:
 1. the return value from your function if `cached` is false, or
 1. a previously stored value if `cached` is true.
 
-All the hard stuff is punted to patrickmn's [go-cache](https://github.com/patrickmn/go-cache) and the Go team's [x/sync/singleflight](https://github.com/golang/sync), I just lashed them together.
+All the hard stuff is punted to [go-cache](https://github.com/patrickmn/go-cache) and the [x/sync/singleflight](https://github.com/golang/sync), I just lashed them together.<br/>
+Note that `cache.Storage` is exported, so you can use underlying features such as [Flush](https://godoc.org/github.com/patrickmn/go-cache#Cache.Flush) or [SaveFile](https://godoc.org/github.com/patrickmn/go-cache#Cache.SaveFile).
 
-Also note that `cache.Storage` is exported, so you can use the underlying cache features - such as [Flush](https://godoc.org/github.com/patrickmn/go-cache#Cache.Flush) or [SaveFile](https://godoc.org/github.com/patrickmn/go-cache#Cache.SaveFile).
+### Type safety
 
-### Generics
-
-You can also use generics. The same example as above
+The default usage stores and returns an `any` type.<br/>
+If you wants to store & retrieve a specific type, use `Call` instead:
 
 ```golang
 import (
@@ -63,13 +63,13 @@ import (
 	"github.com/kofalt/go-memoize"
 )
 
-// Any expensive call that you wish to cache
+// Same example as above, but this func returns a string!
 expensive := func() (string, error) {
 	time.Sleep(3 * time.Second)
 	return "some data", nil
 }
 
-// Cache expensive calls in memory for 90 seconds, purging old entries every 10 minutes.
+// Same as before
 cache := memoize.NewMemoizer(90*time.Second, 10*time.Minute)
 
 // This will call the expensive func, and return a string.
