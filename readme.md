@@ -48,7 +48,7 @@ In the example above, `result` is:
 1. the return value from your function if `cached` is false, or
 1. a previously stored value if `cached` is true.
 
-All the hard stuff is punted to [go-cache](https://github.com/patrickmn/go-cache) and the [x/sync/singleflight](https://github.com/golang/sync), I just lashed them together.<br/>
+All the hard stuff is punted to [go-cache](https://github.com/patrickmn/go-cache) and [sync/singleflight](https://github.com/golang/sync), I just lashed them together.<br/>
 Note that `cache.Storage` is exported, so you can use underlying features such as [Flush](https://godoc.org/github.com/patrickmn/go-cache#Cache.Flush) or [SaveFile](https://godoc.org/github.com/patrickmn/go-cache#Cache.SaveFile).
 
 ### Type safety
