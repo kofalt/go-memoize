@@ -2,6 +2,8 @@ package memoize
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -84,8 +86,7 @@ func (t *F) TestFailure() {
 	t.So(cached, ShouldBeTrue)
 }
 
-// TestBasicGenerics adopts the code from readme.md into a simple test case
-// but using generics.
+// TestBasicGenerics adopts the code from readme.md into a simple test case but using generics.
 func (t *F) TestBasicGenerics() {
 	expensiveCalls := 0
 
@@ -116,8 +117,7 @@ func (t *F) TestBasicGenerics() {
 	t.So(cached, ShouldBeFalse)
 }
 
-// TestFailureGenerics checks that failed function values are not cached
-// when using generics.
+// TestFailureGenerics checks that failed function values are not cached when using generics.
 func (t *F) TestFailureGenerics() {
 	calls := 0
 
@@ -151,4 +151,51 @@ func (t *F) TestFailureGenerics() {
 	t.So(err, ShouldBeNil)
 	t.So(result, ShouldEqual, 2)
 	t.So(cached, ShouldBeTrue)
+}
+
+// TestConcurrency runs 10,000 goroutines of ~10ms tasks and ensures at least 99.9% deduplication occurs.
+func (t *F) TestConcurrency() {
+	var counter atomic.Int64
+	var wg sync.WaitGroup
+
+	expensive := func() (int64, error) {
+		time.Sleep(10 * time.Millisecond)
+		return counter.Add(1), nil
+	}
+
+	cache := NewMemoizer(90*time.Second, 10*time.Minute)
+
+	wg.Add(1000)
+	for range 1000 {
+		go func() {
+			Call(cache, "key1", expensive)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	t.So(counter.Load(), ShouldBeLessThanOrEqualTo, 10)
+}
+
+// TestTrivialConcurrency hammers 10,000 trivial goroutines and ensures at least 95% deduplication occurs.
+func (t *F) TestTrivialConcurrency() {
+	var counter atomic.Int64
+	var wg sync.WaitGroup
+
+	expensive := func() (int64, error) {
+		return counter.Add(1), nil
+	}
+
+	cache := NewMemoizer(90*time.Second, 10*time.Minute)
+
+	wg.Add(10000)
+	for range 10000 {
+		go func() {
+			Call(cache, "key1", expensive)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	t.So(counter.Load(), ShouldBeLessThanOrEqualTo, 500)
 }

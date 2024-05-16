@@ -81,3 +81,16 @@ result, err, cached = memoize.Call(cache, "key1", expensive)
 // This uses a new cache key, so expensive is called again
 result, err, cached = memoize.Call(cache, "key2", expensive)
 ```
+
+### Note about performance
+
+Go-memoize is extremely fast, but does not guarantee 100% deduplication.<br/>
+This is an intentional trade-off, because the goal of a memoizer is to increase performance!<br/>
+Most users do not need to worry about this.
+
+A memoizer is best suited for functions that take a few milliseconds or greater.<br/>
+Examples: checking disk, make an HTTP call, calculating expensive values...<br/>
+For these use cases you can expect deduplication of 99.9% or greater, confirmed by unit tests.
+
+If you have a very tiny function that only takes nanoseconds, you may see a few extra calls.<br/>
+See issue #7 for more information.

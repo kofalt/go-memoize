@@ -18,4 +18,4 @@ jobs:
 
       - run: go build -v
 
-      - run: go test -count 1 ./...
+      - run: go test -race -count 10
