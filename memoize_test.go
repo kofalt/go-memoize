@@ -152,3 +152,75 @@ func (t *F) TestFailureGenerics() {
 	t.So(result, ShouldEqual, 2)
 	t.So(cached, ShouldBeTrue)
 }
+
+func (t *F) TestMemoizeUsesValueCachedBeforeEnteringSingleflight() {
+	// - The first Memoize starts its function and waits before returning 1.
+	// - The second Memoize misses the cache and pauses before singleflight.Do.
+	// - The hook lets the first Memoize cache 1 and leave singleflight.Do.
+	// - The second Memoize should return cached 1 without invoking its function, which returns 2.
+	cache := NewMemoizer(time.Minute, 0)
+	firstFunctionStarted := make(chan struct{})
+	allowFirstFunctionToReturn := make(chan struct{})
+	firstCallReturned := make(chan struct{})
+
+	go func() {
+		_, _, _ = cache.Memoize("key", func() (any, error) {
+			close(firstFunctionStarted)
+			<-allowFirstFunctionToReturn
+			return 1, nil
+		})
+		close(firstCallReturned)
+	}()
+	<-firstFunctionStarted
+
+	cache.afterCacheMissForTest = func() {
+		close(allowFirstFunctionToReturn)
+		<-firstCallReturned
+	}
+
+	secondFunctionCalled := false
+	result, err, _ := cache.Memoize("key", func() (any, error) {
+		secondFunctionCalled = true
+		return 2, nil
+	})
+
+	t.So(err, ShouldBeNil)
+	t.So(result, ShouldEqual, 1)
+	t.So(secondFunctionCalled, ShouldBeFalse)
+}
+
+func (t *F) TestCallUsesValueCachedBeforeEnteringSingleflight() {
+	// - The first Call starts its function and waits before returning 1.
+	// - The second Call misses the cache and pauses before singleflight.Do.
+	// - The hook lets the first Call cache 1 and leave singleflight.Do.
+	// - The second Call should return cached 1 without invoking its function, which returns 2.
+	cache := NewMemoizer(time.Minute, 0)
+	firstFunctionStarted := make(chan struct{})
+	allowFirstFunctionToReturn := make(chan struct{})
+	firstCallReturned := make(chan struct{})
+
+	go func() {
+		_, _, _ = Call(cache, "key", func() (int, error) {
+			close(firstFunctionStarted)
+			<-allowFirstFunctionToReturn
+			return 1, nil
+		})
+		close(firstCallReturned)
+	}()
+	<-firstFunctionStarted
+
+	cache.afterCacheMissForTest = func() {
+		close(allowFirstFunctionToReturn)
+		<-firstCallReturned
+	}
+
+	secondFunctionCalled := false
+	result, err, _ := Call(cache, "key", func() (int, error) {
+		secondFunctionCalled = true
+		return 2, nil
+	})
+
+	t.So(err, ShouldBeNil)
+	t.So(result, ShouldEqual, 1)
+	t.So(secondFunctionCalled, ShouldBeFalse)
+}

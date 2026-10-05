@@ -15,6 +15,8 @@ type Memoizer struct {
 	Storage *cache.Cache
 
 	group singleflight.Group
+	// afterCacheMissForTest runs before entering singleflight.Do.
+	afterCacheMissForTest func()
 }
 
 // NewMemoizer creates a new Memoizer with the configured expiry and cleanup policies.
@@ -35,9 +37,18 @@ func (m *Memoizer) Memoize(key string, fn func() (interface{}, error)) (interfac
 	if found {
 		return value, nil, true
 	}
+	if m.afterCacheMissForTest != nil {
+		m.afterCacheMissForTest()
+	}
 
 	// Combine memoized function with a cache store
 	value, err, _ := m.group.Do(key, func() (interface{}, error) {
+		// Check cache again in case another call populated it after the initial check.
+		value, found := m.Storage.Get(key)
+		if found {
+			return value, nil
+		}
+
 		data, innerErr := fn()
 
 		if innerErr == nil {
@@ -68,9 +79,18 @@ func Call[T any](m *Memoizer, key string, fn MemoizedFunction[T]) (T, error, boo
 		}
 		return v, nil, true
 	}
+	if m.afterCacheMissForTest != nil {
+		m.afterCacheMissForTest()
+	}
 
 	// Combine memoized function with a cache store
 	value, err, _ := m.group.Do(key, func() (any, error) {
+		// Check cache again in case another call populated it after the initial check.
+		value, found := m.Storage.Get(key)
+		if found {
+			return value, nil
+		}
+
 		data, innerErr := fn()
 
 		if innerErr == nil {
